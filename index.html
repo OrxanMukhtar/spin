@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Çarkıfelek</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        #wheel-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh;
+            flex-direction: column;
+            position: relative;
+            padding: 10px;
+        }
+        #wheel {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            transition: transform 4s ease-out;
+        }
+        #spin-button {
+            margin-top: 20px;
+        }
+        #pointer {
+            position: absolute;
+            top: 60%;
+            left: 70%;
+            transform: translateX(-50%);
+            transform: rotate(3deg);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid red;
+        }
+        #prize-window {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffeb3b;
+            color: #000;
+            border: 5px solid #ff9800;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 10;
+            text-align: center;
+            font-size: 1.5em;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 5;
+        }
+        #score-board {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .score {
+            font-size: 1.2em;
+        }
+        @media (max-width: 600px) {
+            #pointer {
+                top: 50%;
+                left: 50%;
+                border-left: 10px solid transparent;
+                border-right: 10px solid transparent;
+                border-top: 15px solid red;
+            }
+            .score {
+                font-size: 1em;
+            }
+        }
+        #language-dropdown {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 20;
+        }
+        .dropbtn {
+            background-color: #6a6a6a;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .dropbtn:hover, .dropbtn:focus {
+            background-color: #3e8e41;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            bottom: 40px;
+            right: 0;
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .dropdown-content a:hover {background-color: #f1f1f1}
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+    <script>
+        let deg = 0;
+        let score = 0;
+        let jackpotScore = 0;
+        const prizes = {
+            en: ['$300', '$500', '$200', '$1000', '$800', '$600', 'BANKRUPT', 'LOSE A TURN', '$400', '$700', 'JACKPOT'],
+            tr: ['$300', '$500', '$200', '$1000', '$800', '$600', 'İFLAS', 'BİR TUR KAYBETDİN', '$400', '$700', 'BÜYÜK İKRAMİYE'],
+            ru: ['$300', '$500', '$200', '$1000', '$800', '$600', 'БАНКРОТ', 'ПРОПУСТИТЬ ХОД', '$400', '$700', 'ДЖЕКПОТ']
+        };
+        const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF', '#FF69B4', '#8A2BE2', '#5F9EA0', '#D2691E', '#DC143C'];
+        let currentLanguage = 'tr';
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheel');
+            const ctx = canvas.getContext('2d');
+            const numOfSlices = prizes[currentLanguage].length;
+            const sliceDeg = 360 / numOfSlices;
+            const radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas before drawing
+            for (let i = 0; i < numOfSlices; i++) {
+                ctx.beginPath();
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, (sliceDeg * i) * Math.PI / 180, (sliceDeg * (i + 1)) * Math.PI / 180);
+                ctx.closePath();
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(((sliceDeg * i) + (sliceDeg / 2)) * Math.PI / 180);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText(prizes[currentLanguage][i], radius / 2, 10);
+                ctx.restore();
+            }
+        }
+
+        function spin() {
+            const wheel = document.getElementById('wheel');
+            deg = Math.floor(5000 + Math.random() * 5000);
+            wheel.style.transform = `rotate(${deg}deg)`;
+
+            wheel.addEventListener('transitionend', () => {
+                const actualDeg = deg % 360;
+                const sliceDeg = 360 / prizes[currentLanguage].length;
+                const index = Math.floor((360 - actualDeg + (sliceDeg / 2)) % 360 / sliceDeg);
+                showPrize(prizes[currentLanguage][index]);
+            }, { once: true });
+        }
+
+        function showPrize(prize) {
+            const prizeWindow = document.getElementById('prize-window');
+            const overlay = document.getElementById('overlay');
+            let message = prize;
+            if (prize === 'BANKRUPT' || prize === 'İFLAS' || prize === 'БАНКРОТ') {
+                score = 0;
+            } else if (prize === 'LOSE A TURN' || prize === 'BİR TUR KAYBET' || prize === 'ПРОПУСТИТЬ ХОД') {
+                // Do nothing
+            } else if (prize === 'JACKPOT' || prize === 'BÜYÜK İKRAMİYE' || prize === 'ДЖЕКПОТ') {
+                jackpotScore += score;
+            } else {
+                const prizeValue = parseInt(prize.replace(/\D/g, ''));
+                score += prizeValue;
+            }
+            prizeWindow.textContent = `${prize}`;
+            prizeWindow.style.display = 'block';
+            overlay.style.display = 'block';
+            updateScoreBoard();
+        }
+
+        function closePrizeWindow() {
+            const prizeWindow = document.getElementById('prize-window');
+            const overlay = document.getElementById('overlay');
+            prizeWindow.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function updateScoreBoard() {
+            document.getElementById('score').textContent = `${currentLanguage === 'en' ? 'Score' : currentLanguage === 'tr' ? 'Puan' : 'Счёт'}: ${score}`;
+            document.getElementById('jackpot-score').textContent = `${currentLanguage === 'en' ? 'Jackpot' : currentLanguage === 'tr' ? 'Büyük İkramiye' : 'Джекпот'}: ${jackpotScore}`;
+        }
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            drawWheel();
+            updateScoreBoard();
+            closePrizeWindow(); // Hide prize window if language is changed
+        }
+
+        window.onload = () => {
+            drawWheel();
+            document.getElementById('overlay').addEventListener('click', closePrizeWindow);
+            updateScoreBoard();
+        }
+    </script>
+</head>
+<body>
+    <main class="container">
+        <section id="wheel-container">
+            <div id="pointer"></div>
+            <canvas id="wheel" width="500" height="500"></canvas>
+            <button id="spin-button" onclick="spin()">Spin</button>
+        </section>
+        <div id="score-board">
+            <div id="score">Puan: 0</div>
+            <div id="jackpot-score">Büyük İkramiye: 0</div>
+        </div>
+        <div id="overlay"></div>
+        <div id="prize-window"></div>
+
+        <!-- Dil değiştirme dropdown menüsü -->
+        <div id="language-dropdown" class="dropdown">
+            <button class="dropbtn">Dil</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="changeLanguage('en')">English</a>
+                <a href="#" onclick="changeLanguage('tr')">Türkçe</a>
+                <a href="#" onclick="changeLanguage('ru')">Русский</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="container">
+        <small><a href="#">Gizlilik Politikası</a> • <a href="#">İletişim</a></small>
+    </footer>
+</body>
+</html>
