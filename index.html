@@ -26,10 +26,9 @@
         }
         #pointer {
             position: absolute;
-            top: 60%;
-            left: 70%;
-            transform: translateX(-50%);
-            transform: rotate(3deg);
+            top: 50%;
+            right: -40px; /* Çarkın dışına taşacak şekilde ayarlanmıştır */
+            transform: translateY(-50%);
             width: 0;
             height: 0;
             border-left: 20px solid transparent;
@@ -74,7 +73,7 @@
         @media (max-width: 600px) {
             #pointer {
                 top: 50%;
-                left: 50%;
+                right: -20px;
                 border-left: 10px solid transparent;
                 border-right: 10px solid transparent;
                 border-top: 15px solid red;
@@ -122,17 +121,46 @@
             display: block;
         }
     </style>
+</head>
+<body>
+    <main class="container">
+        <section id="wheel-container">
+            <div id="pointer"></div>
+            <canvas id="wheel" width="500" height="500"></canvas>
+            <button id="spin-button" onclick="spin()">Spin</button>
+        </section>
+        <div id="score-board">
+            <div id="score">Prize: 0</div>
+            <div id="jackpot-score">Büyük İkramiye: 0</div>
+        </div>
+        <div id="overlay"></div>
+        <div id="prize-window"></div>
+
+        <!-- Language-->
+        <div id="language-dropdown" class="dropdown">
+            <button class="dropbtn">Dil</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="changeLanguage('en')">English</a>
+                <a href="#" onclick="changeLanguage('tr')">Türkçe</a>
+                <a href="#" onclick="changeLanguage('ru')">Русский</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="container">
+        <small><a href="#">Gizlilik Politikası</a> • <a href="#">İletişim</a></small>
+    </footer>
     <script>
         let deg = 0;
         let score = 0;
         let jackpotScore = 0;
         const prizes = {
-            en: ['$300', '$500', '$200', '$1000', '$800', '$600', 'BANKRUPT', 'LOSE A TURN', '$400', '$700', 'JACKPOT'],
-            tr: ['$300', '$500', '$200', '$1000', '$800', '$600', 'İFLAS', 'BİR TUR KAYBETDİN', '$400', '$700', 'BÜYÜK İKRAMİYE'],
-            ru: ['$300', '$500', '$200', '$1000', '$800', '$600', 'БАНКРОТ', 'ПРОПУСТИТЬ ХОД', '$400', '$700', 'ДЖЕКПОТ']
+                    en: ['$30',     '$50',     '$20',    'BANKRUPT', '$100',    '$80',   'LOSE ALL',         '$60',  'LOSE ALL',         '$40',     '$70',      '-$50'  ,  'JACKPOT'],
+                    tr: ['$30',     '$50',     '$20',    'İFLAS',    '$100',    '$80',   'TUMUNU KAYBETDİN', '$60',   'TUMUNU KAYBETDİN',   '$40',   '$70',    '-$50'  ,    'BÜYÜK İKRAMİYE'],
+                    ru: ['$30',     '$50',     '$20',    'БАНКРОТ',  '$100',    '$80',   'LOSE ALL',         '$60',   'LOSE ALL',         '$40',      '$70',   '-$50'  ,   'ДЖЕКПОТ']
         };
-        const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF', '#FF69B4', '#8A2BE2', '#5F9EA0', '#D2691E', '#DC143C'];
-        let currentLanguage = 'tr';
+        const colors = ['#fbefcc', '#f9ccac', '#fff2df', '#c83349', '#f7786b', '#cab577', '#c1502e',       '#96ceb4',    '#c1502e',      '#fbefcc',  '#f77f00', '#96ceb4' , '#ae2012'];
+        let currentLanguage = 'en';
 
         function drawWheel() {
             const canvas = document.getElementById('wheel');
@@ -164,6 +192,10 @@
 
         function spin() {
             const wheel = document.getElementById('wheel');
+            const spinButton = document.getElementById('spin-button');
+            spinButton.disabled = true; // Disable spin button
+            
+
             deg = Math.floor(5000 + Math.random() * 5000);
             wheel.style.transform = `rotate(${deg}deg)`;
 
@@ -172,6 +204,7 @@
                 const sliceDeg = 360 / prizes[currentLanguage].length;
                 const index = Math.floor((360 - actualDeg + (sliceDeg / 2)) % 360 / sliceDeg);
                 showPrize(prizes[currentLanguage][index]);
+                spinButton.disabled = false; // Re-enable spin button after spinning
             }, { once: true });
         }
 
@@ -181,73 +214,42 @@
             let message = prize;
             if (prize === 'BANKRUPT' || prize === 'İFLAS' || prize === 'БАНКРОТ') {
                 score = 0;
-            } else if (prize === 'LOSE A TURN' || prize === 'BİR TUR KAYBET' || prize === 'ПРОПУСТИТЬ ХОД') {
-                // Do nothing
+                jackpotScore = 0;
+            } else if (prize === 'LOSE ALL' || prize === 'TUMUNU KAYBETDIN' || prize === 'LOSE ALL') {
+                score = 0;
             } else if (prize === 'JACKPOT' || prize === 'BÜYÜK İKRAMİYE' || prize === 'ДЖЕКПОТ') {
-                jackpotScore += score;
+                score += jackpotScore;
+                jackpotScore = 0;
             } else {
-                const prizeValue = parseInt(prize.replace(/\D/g, ''));
-                score += prizeValue;
+                score += parseInt(prize.replace('$', ''));
             }
-            prizeWindow.textContent = `${prize}`;
+
+            if (prize === 'JACKPOT' || prize === 'BÜYÜK İKRAMİYE' || prize === 'ДЖЕКПОТ') {
+                jackpotScore += score;
+                message = `${prize} ${jackpotScore}`;
+            }
+
+            document.getElementById('score').textContent = `Puan: ${score}`;
+            document.getElementById('jackpot-score').textContent = `Büyük İkramiye: ${jackpotScore}`;
+
+            prizeWindow.textContent = message;
             prizeWindow.style.display = 'block';
             overlay.style.display = 'block';
-            updateScoreBoard();
+
+            setTimeout(() => {
+                prizeWindow.style.display = 'none';
+                overlay.style.display = 'none';
+            }, 3000);
         }
 
-        function closePrizeWindow() {
-            const prizeWindow = document.getElementById('prize-window');
-            const overlay = document.getElementById('overlay');
-            prizeWindow.style.display = 'none';
-            overlay.style.display = 'none';
-        }
-
-        function updateScoreBoard() {
-            document.getElementById('score').textContent = `${currentLanguage === 'en' ? 'Score' : currentLanguage === 'tr' ? 'Puan' : 'Счёт'}: ${score}`;
-            document.getElementById('jackpot-score').textContent = `${currentLanguage === 'en' ? 'Jackpot' : currentLanguage === 'tr' ? 'Büyük İkramiye' : 'Джекпот'}: ${jackpotScore}`;
-        }
-
-        function changeLanguage(lang) {
-            currentLanguage = lang;
+        function changeLanguage(language) {
+            currentLanguage = language;
             drawWheel();
-            updateScoreBoard();
-            closePrizeWindow(); // Hide prize window if language is changed
         }
 
-        window.onload = () => {
+        document.addEventListener('DOMContentLoaded', () => {
             drawWheel();
-            document.getElementById('overlay').addEventListener('click', closePrizeWindow);
-            updateScoreBoard();
-        }
+        });
     </script>
-</head>
-<body>
-    <main class="container">
-        <section id="wheel-container">
-            <div id="pointer"></div>
-            <canvas id="wheel" width="500" height="500"></canvas>
-            <button id="spin-button" onclick="spin()">Spin</button>
-        </section>
-        <div id="score-board">
-            <div id="score">Puan: 0</div>
-            <div id="jackpot-score">Büyük İkramiye: 0</div>
-        </div>
-        <div id="overlay"></div>
-        <div id="prize-window"></div>
-
-        <!-- Dil değiştirme dropdown menüsü -->
-        <div id="language-dropdown" class="dropdown">
-            <button class="dropbtn">Dil</button>
-            <div class="dropdown-content">
-                <a href="#" onclick="changeLanguage('en')">English</a>
-                <a href="#" onclick="changeLanguage('tr')">Türkçe</a>
-                <a href="#" onclick="changeLanguage('ru')">Русский</a>
-            </div>
-        </div>
-    </main>
-
-    <footer class="container">
-        <small><a href="#">Gizlilik Politikası</a> • <a href="#">İletişim</a></small>
-    </footer>
 </body>
 </html>
