@@ -155,9 +155,9 @@
         let score = 0;
         let jackpotScore = 0;
         const prizes = {
-                    en: ['$30',     '$50',     '$20',    'BANKRUPT', '$100',    '$80',   'LOSE ALL',         '$60',  'LOSE ALL',         '$40',     '$70',      '-$50'  ,  'JACKPOT'],
-                    tr: ['$30',     '$50',     '$20',    'İFLAS',    '$100',    '$80',   'TUMUNU KAYBETDİN', '$60',   'TUMUNU KAYBETDİN',   '$40',   '$70',    '-$50'  ,    'BÜYÜK İKRAMİYE'],
-                    ru: ['$30',     '$50',     '$20',    'БАНКРОТ',  '$100',    '$80',   'LOSE ALL',         '$60',   'LOSE ALL',         '$40',      '$70',   '-$50'  ,   'ДЖЕКПОТ']
+                    en: ['$3',     '$5',     '$2',    'BANKRUPT', '$10',    '$8',   'LOSE ALL',         '$6',  'LOSE ALL',         '$4',     '$7',      '-50%'  ,  'JACKPOT'],
+                    tr: ['$3',     '$5',     '$2',    'İFLAS',    '$10',    '$8',   'TUMUNU KAYBETDİN', '$6',   'TUMUNU KAYBETDİN',   '$4',   '$7',    '-50%'  ,    'BÜYÜK İKRAMİYE'],
+                    ru: ['$3',     '$5',     '$2',    'БАНКРОТ',  '$10',    '$8',   'LOSE ALL',         '$6',   'LOSE ALL',         '$4',      '$7',   '-50%'  ,   'ДЖЕКПОТ']
         };
         const colors = ['#fbefcc', '#f9ccac', '#fff2df', '#c83349', '#f7786b', '#cab577', '#c1502e',       '#96ceb4',    '#c1502e',      '#fbefcc',  '#f77f00', '#96ceb4' , '#ae2012'];
         let currentLanguage = 'en';
@@ -224,8 +224,12 @@
                 score += parseInt(prize.replace('$', ''));
             }
 
+            if (prize === '-50%' || prize === '-50%' || prize === '-50%' ) {
+                score += score/2;
+            }
+
             if (prize === 'JACKPOT' || prize === 'BÜYÜK İKRAMİYE' || prize === 'ДЖЕКПОТ') {
-                jackpotScore += score;
+                jackpotScore = score + jackpotScore;
                 message = `${prize} ${jackpotScore}`;
             }
 
